@@ -4,7 +4,6 @@ import { EMBER_METAL_TRACKED_PROPERTIES } from '@ember/canary-features';
 import { backburner } from '@ember/runloop';
 import { DEBUG } from '@glimmer/env';
 import {
-  combine,
   CONSTANT_TAG,
   DirtyableTag,
   Tag,
@@ -40,17 +39,17 @@ export function tagForProperty(object: any, propertyKey: string | symbol, _meta?
   }
 
   if (EMBER_METAL_TRACKED_PROPERTIES) {
-    let pair = combine([makeTag(), UpdatableTag.create(CONSTANT_TAG)]);
+    let newTag = UpdatableTag.create();
 
     if (DEBUG) {
       if (EMBER_METAL_TRACKED_PROPERTIES) {
         setupMandatorySetter!(object, propertyKey);
       }
 
-      (pair as any)._propertyKey = propertyKey;
+      (newTag as any)._propertyKey = propertyKey;
     }
 
-    return (tags[propertyKey] = pair);
+    return (tags[propertyKey] = newTag);
   } else {
     return (tags[propertyKey] = makeTag());
   }
@@ -61,7 +60,7 @@ export function tagFor(object: any | null, _meta?: Meta): Tag {
     let meta = _meta === undefined ? metaFor(object) : _meta;
 
     if (!meta.isMetaDestroyed()) {
-      return meta.writableTag(makeTag);
+      return meta.writableTag();
     }
   }
 
@@ -73,12 +72,11 @@ export let update: (outer: Tag, inner: Tag) => void;
 
 if (EMBER_METAL_TRACKED_PROPERTIES) {
   dirty = tag => {
-    (tag.inner! as any).first.inner.dirty();
+    (tag.inner! as any).dirty();
   };
 
   update = (outer, inner) => {
-    (outer.inner! as any).lastChecked = 0;
-    (outer.inner! as any).second.inner.update(inner);
+    (outer.inner! as any).update(inner);
   };
 } else {
   dirty = tag => {
@@ -91,18 +89,14 @@ export function markObjectAsDirty(obj: object, propertyKey: string, _meta?: Meta
   let objectTag = meta.readableTag();
 
   if (objectTag !== undefined) {
-    if (isProxy(obj)) {
-      (objectTag.inner! as any).first.inner.dirty();
-    } else {
-      (objectTag.inner! as any).dirty();
-    }
+    objectTag.inner.dirty();
   }
 
   let tags = meta.readableTags();
   let propertyTag = tags !== undefined ? tags[propertyKey] : undefined;
 
   if (propertyTag !== undefined) {
-    dirty(propertyTag);
+    propertyTag.inner.dirty();
   }
 
   if (objectTag !== undefined || propertyTag !== undefined) {

@@ -2,7 +2,6 @@
 @module ember
 */
 
-import { combine, CONSTANT_TAG, DirtyableTag, UpdatableTag } from '@glimmer/reference';
 import { meta } from '@ember/-internals/meta';
 import {
   get,
@@ -15,17 +14,19 @@ import {
   tagFor,
   computed,
   UNKNOWN_PROPERTY_TAG,
+  update,
   getChainTagsForKey,
 } from '@ember/-internals/metal';
 import { setProxy } from '@ember/-internals/utils';
 import { EMBER_METAL_TRACKED_PROPERTIES } from '@ember/canary-features';
 import { assert } from '@ember/debug';
+import { UpdatableTag, combine } from '@glimmer/reference';
 
 export function contentFor(proxy, m) {
   let content = get(proxy, 'content');
   let tag = (m === undefined ? meta(proxy) : m).readableTag();
   if (tag !== undefined) {
-    tag.inner.second.inner.update(tagFor(content));
+    update(tag, tagFor(content));
   }
   return content;
 }
@@ -53,7 +54,7 @@ export default Mixin.create({
     this._super(...arguments);
     setProxy(this);
     let m = meta(this);
-    m.writableTag(() => combine([DirtyableTag.create(), UpdatableTag.create(CONSTANT_TAG)]));
+    m.writableTag();
   },
 
   willDestroy() {
@@ -88,7 +89,7 @@ export default Mixin.create({
   },
 
   [UNKNOWN_PROPERTY_TAG](key) {
-    return combine(getChainTagsForKey(this, `content.${key}`));
+    return UpdatableTag.create(combine(getChainTagsForKey(this, `content.${key}`)));
   },
 
   unknownProperty(key) {
