@@ -4,7 +4,12 @@ import { EMBER_METAL_TRACKED_PROPERTIES } from '@ember/canary-features';
 import { assert } from '@ember/debug';
 import EmberError from '@ember/error';
 import { finishLazyChains, getChainTagsForKey } from './chain-tags';
-import { getCachedValueFor, getCacheFor, setLastRevisionFor } from './computed_cache';
+import {
+  getCachedValueFor,
+  getCacheFor,
+  getLastRevisionFor,
+  setLastRevisionFor,
+} from './computed_cache';
 import {
   addDependentKeys,
   ComputedDescriptor,
@@ -102,12 +107,15 @@ export class AliasedProperty extends ComputedDescriptor {
         ret = get(obj, this.altKey);
       });
 
-      let altPropertyTag = getChainTagsForKey(obj, this.altKey);
-      update(propertyTag, altPropertyTag);
-      consume(propertyTag);
+      let lastRevision = getLastRevisionFor(obj, keyName);
 
-      finishLazyChains(obj, keyName, ret);
-      setLastRevisionFor(obj, keyName, propertyTag.value());
+      if (!propertyTag.validate(lastRevision)) {
+        let altPropertyTag = getChainTagsForKey(obj, this.altKey);
+        update(propertyTag, altPropertyTag);
+        setLastRevisionFor(obj, keyName, propertyTag.value());
+      }
+
+      consume(propertyTag);
     } else {
       ret = get(obj, this.altKey);
       this.consume(obj, keyName, metaFor(obj));
