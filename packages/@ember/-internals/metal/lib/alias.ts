@@ -23,7 +23,7 @@ import { defineProperty } from './properties';
 import { get } from './property_get';
 import { set } from './property_set';
 import { tagForProperty, update } from './tags';
-import { consume, track } from './tracked';
+import { consume, untrack } from './tracked';
 
 const CONSUMED = Object.freeze({});
 
@@ -103,7 +103,7 @@ export class AliasedProperty extends ComputedDescriptor {
 
       // We don't use the tag since CPs are not automatic, we just want to avoid
       // anything tracking while we get the altKey
-      track(() => {
+      untrack(() => {
         ret = get(obj, this.altKey);
       });
 
@@ -113,6 +113,7 @@ export class AliasedProperty extends ComputedDescriptor {
         let altPropertyTag = getChainTagsForKey(obj, this.altKey);
         update(propertyTag, altPropertyTag);
         setLastRevisionFor(obj, keyName, propertyTag.value());
+        finishLazyChains(obj, keyName, ret);
       }
 
       consume(propertyTag);

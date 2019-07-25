@@ -35,7 +35,7 @@ import { defineProperty } from './properties';
 import { notifyPropertyChange } from './property_events';
 import { set } from './property_set';
 import { tagForProperty, update } from './tags';
-import { consume, track } from './tracked';
+import { consume, track, untrack } from './tracked';
 
 export type ComputedPropertyGetter = (keyName: string) => any;
 export type ComputedPropertySetter = (keyName: string, value: any, cachedValue?: any) => any;
@@ -535,20 +535,24 @@ export class ComputedProperty extends ComputedDescriptor {
           !metaFor(obj).isMetaDestroyed()
         );
 
-        // Create a tracker that absorbs any trackable actions inside the CP
-        let tag = track(() => {
-          ret = this._getter!.call(obj, keyName);
-        });
+        let upstreamTag: Tag | undefined = undefined;
+
+        if (this._auto === true) {
+          upstreamTag = track(() => {
+            ret = this._getter!.call(obj, keyName);
+          });
+        } else {
+          // Create a tracker that absorbs any trackable actions inside the CP
+          untrack(() => {
+            ret = this._getter!.call(obj, keyName);
+          });
+        }
 
         finishLazyChains(obj, keyName, ret);
 
-        let upstreamTag: Tag | undefined = undefined;
-
         if (this._dependentKeys !== undefined) {
-          upstreamTag = getChainTagsForKeys(obj, this._dependentKeys);
-        }
+          let tag = getChainTagsForKeys(obj, this._dependentKeys);
 
-        if (this._auto === true) {
           upstreamTag = upstreamTag === undefined ? tag : combine([upstreamTag, tag]);
         }
 

@@ -6,7 +6,7 @@ import { getLastRevisionFor, peekCacheFor } from './computed_cache';
 import { descriptorForProperty } from './descriptor_map';
 import get from './property_get';
 import { tagForProperty } from './tags';
-import { track } from './tracked';
+import { untrack } from './tracked';
 
 export function finishLazyChains(obj: any, key: string, value: any) {
   let meta = peekMeta(obj);
@@ -111,7 +111,7 @@ export function getChainTagsForKey(obj: any, path: string) {
       if (propertyTag.validate(lastRevision)) {
         if (typeof descriptor.altKey === 'string') {
           // it's an alias, so just get the altkey without tracking
-          track(() => {
+          untrack(() => {
             current = get(current, descriptor.altKey);
           });
         } else {
