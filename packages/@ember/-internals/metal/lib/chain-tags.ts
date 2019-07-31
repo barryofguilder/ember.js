@@ -17,14 +17,18 @@ export function finishLazyChains(obj: any, key: string, value: any) {
   }
 
   if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
-    lazyTags.length = 0;
+    for (let path in lazyTags) {
+      delete lazyTags[path];
+    }
     return;
   }
 
-  while (lazyTags.length > 0) {
-    let [path, tag] = lazyTags.pop()!;
+  for (let path in lazyTags) {
+    let tag = lazyTags[path];
 
     tag.inner.update(getChainTagsForKey(value, path));
+
+    delete lazyTags[path];
   }
 }
 
@@ -118,11 +122,15 @@ export function getChainTagsForKey(obj: any, path: string) {
           current = peekCacheFor(current).get(segment);
         }
       } else {
-        let placeholderTag = UpdatableTag.create(CONSTANT_TAG);
+        let lazyChains = metaFor(current).writableLazyChainsFor(segment);
 
-        metaFor(current)
-          .writableLazyChainsFor(segment)
-          .push([path.substr(segmentEnd + 1), placeholderTag]);
+        let rest = path.substr(segmentEnd + 1);
+
+        let placeholderTag = lazyChains[rest];
+
+        if (placeholderTag === undefined) {
+          placeholderTag = lazyChains[rest] = UpdatableTag.create(CONSTANT_TAG);
+        }
 
         chainTags.push(placeholderTag);
 
