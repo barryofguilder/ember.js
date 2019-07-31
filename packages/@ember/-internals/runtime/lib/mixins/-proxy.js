@@ -20,7 +20,7 @@ import {
 import { setProxy } from '@ember/-internals/utils';
 import { EMBER_METAL_TRACKED_PROPERTIES } from '@ember/canary-features';
 import { assert } from '@ember/debug';
-import { UpdatableTag, combine } from '@glimmer/reference';
+import { Tag, combine } from '@glimmer/reference';
 
 export function contentFor(proxy, m) {
   let content = get(proxy, 'content');
@@ -89,7 +89,7 @@ export default Mixin.create({
   },
 
   [UNKNOWN_PROPERTY_TAG](key) {
-    return UpdatableTag.create(combine(getChainTagsForKey(this, `content.${key}`)));
+    return Tag.create(combine(getChainTagsForKey(this, `content.${key}`)));
   },
 
   unknownProperty(key) {

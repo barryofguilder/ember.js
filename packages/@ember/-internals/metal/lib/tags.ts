@@ -3,18 +3,12 @@ import { isProxy, setupMandatorySetter, symbol } from '@ember/-internals/utils';
 import { EMBER_METAL_TRACKED_PROPERTIES } from '@ember/canary-features';
 import { backburner } from '@ember/runloop';
 import { DEBUG } from '@glimmer/env';
-import {
-  CONSTANT_TAG,
-  DirtyableTag,
-  Tag,
-  TagWrapper,
-  UpdatableTag,
-} from '@glimmer/reference';
+import { CONSTANT_TAG, Tag } from '@glimmer/reference';
 
 export const UNKNOWN_PROPERTY_TAG = symbol('UNKNOWN_PROPERTY_TAG');
 
-function makeTag(): TagWrapper<DirtyableTag> {
-  return DirtyableTag.create();
+function makeTag(): Tag {
+  return Tag.create();
 }
 
 export function tagForProperty(object: any, propertyKey: string | symbol, _meta?: Meta): Tag {
@@ -39,7 +33,7 @@ export function tagForProperty(object: any, propertyKey: string | symbol, _meta?
   }
 
   if (EMBER_METAL_TRACKED_PROPERTIES) {
-    let newTag = UpdatableTag.create();
+    let newTag = Tag.create();
 
     if (DEBUG) {
       if (EMBER_METAL_TRACKED_PROPERTIES) {
@@ -72,15 +66,15 @@ export let update: (outer: Tag, inner: Tag) => void;
 
 if (EMBER_METAL_TRACKED_PROPERTIES) {
   dirty = tag => {
-    (tag.inner! as any).dirty();
+    tag.dirty();
   };
 
   update = (outer, inner) => {
-    (outer.inner! as any).update(inner);
+    outer.update(inner);
   };
 } else {
   dirty = tag => {
-    (tag.inner! as any).dirty();
+    tag.dirty();
   };
 }
 
@@ -89,14 +83,14 @@ export function markObjectAsDirty(obj: object, propertyKey: string, _meta?: Meta
   let objectTag = meta.readableTag();
 
   if (objectTag !== undefined) {
-    objectTag.inner.dirty();
+    objectTag.dirty();
   }
 
   let tags = meta.readableTags();
   let propertyTag = tags !== undefined ? tags[propertyKey] : undefined;
 
   if (propertyTag !== undefined) {
-    propertyTag.inner.dirty();
+    propertyTag.dirty();
   }
 
   if (objectTag !== undefined || propertyTag !== undefined) {

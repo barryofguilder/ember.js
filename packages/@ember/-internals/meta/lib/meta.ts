@@ -1,7 +1,7 @@
 import { lookupDescriptor, symbol, toString } from '@ember/-internals/utils';
 import { assert } from '@ember/debug';
 import { DEBUG } from '@glimmer/env';
-import { Tag, TagWrapper, UpdatableTag } from '@glimmer/reference';
+import { Tag } from '@glimmer/reference';
 
 const objectPrototype = Object.prototype;
 
@@ -98,8 +98,8 @@ export class Meta {
   _deps: any | undefined;
   _chainWatchers: any | undefined;
   _chains: any | undefined;
-  _tag: TagWrapper<UpdatableTag> | undefined;
-  _tags: Map<string, TagWrapper<UpdatableTag>> | undefined;
+  _tag: Tag | undefined;
+  _tags: Map<string, Tag> | undefined;
   _flags: MetaFlags;
   _lazyChains: Map<string, Array<[string, Tag]>> | undefined;
   source: object;
@@ -351,7 +351,7 @@ export class Meta {
     );
     let ret = this._tag;
     if (ret === undefined) {
-      ret = this._tag = UpdatableTag.create();
+      ret = this._tag = Tag.create();
     }
     return ret;
   }

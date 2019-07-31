@@ -6,8 +6,6 @@ import {
   isConst,
   PathReference,
   Tag,
-  TagWrapper,
-  UpdatableTag,
   VersionedPathReference,
 } from '@glimmer/reference';
 import { Arguments, NULL_REFERENCE, VM } from '@glimmer/runtime';
@@ -85,7 +83,7 @@ class GetHelperReference extends CachedReference {
   public pathReference: PathReference<string>;
   public lastPath: string | null;
   public innerReference: VersionedPathReference<Opaque>;
-  public innerTag: TagWrapper<UpdatableTag>;
+  public innerTag: Tag;
   public tag: Tag;
 
   static create(
@@ -111,7 +109,7 @@ class GetHelperReference extends CachedReference {
     this.lastPath = null;
     this.innerReference = NULL_REFERENCE;
 
-    let innerTag = (this.innerTag = UpdatableTag.create(CONSTANT_TAG));
+    let innerTag = (this.innerTag = Tag.create(CONSTANT_TAG));
 
     this.tag = combine([sourceReference.tag, pathReference.tag, innerTag]);
   }
@@ -122,7 +120,7 @@ class GetHelperReference extends CachedReference {
 
     if (path !== lastPath) {
       innerReference = referenceFromPath(this.sourceReference, path);
-      innerTag.inner.update(innerReference.tag);
+      innerTag.update(innerReference.tag);
       this.innerReference = innerReference;
       this.lastPath = path;
     }

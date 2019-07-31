@@ -17,13 +17,9 @@ import {
   combine,
   CONSTANT_TAG,
   ConstReference,
-  DirtyableTag,
   isConst,
   Revision,
-  RevisionTag,
   Tag,
-  TagWrapper,
-  UpdatableTag,
   VersionedPathReference,
   VersionedReference,
 } from '@glimmer/reference';
@@ -100,26 +96,14 @@ export class RootReference<T extends object> extends ConstReference<T>
   }
 }
 
-interface ITwoWayFlushDetectionTag extends RevisionTag {
-  didCompute(parent: Opaque): void;
-}
-
 let TwoWayFlushDetectionTag: {
-  create(
-    tag: Tag,
-    key: string,
-    ref: VersionedPathReference<Opaque>
-  ): TagWrapper<ITwoWayFlushDetectionTag>;
+  create(tag: Tag, key: string, ref: VersionedPathReference<Opaque>): Tag;
 };
 
 if (DEBUG) {
-  TwoWayFlushDetectionTag = class TwoWayFlushDetectionTag implements ITwoWayFlushDetectionTag {
-    static create(
-      tag: Tag,
-      key: string,
-      ref: VersionedPathReference<Opaque>
-    ): TagWrapper<TwoWayFlushDetectionTag> {
-      return new TagWrapper((tag as any).type, new TwoWayFlushDetectionTag(tag, key, ref));
+  TwoWayFlushDetectionTag = class TwoWayFlushDetectionTag {
+    static create(tag: Tag, key: string, ref: VersionedPathReference<Opaque>): Tag {
+      return (new TwoWayFlushDetectionTag(tag, key, ref) as unknown) as Tag;
     }
 
     private parent: Opaque = null;
@@ -132,6 +116,10 @@ if (DEBUG) {
 
     value(): Revision {
       return this.tag.value();
+    }
+
+    compute(): Revision {
+      return (this.tag as any).compute();
     }
 
     validate(ticket: Revision): boolean {
@@ -172,15 +160,15 @@ export abstract class PropertyReference extends CachedReference {
 export class RootPropertyReference extends PropertyReference
   implements VersionedPathReference<Opaque> {
   public tag: Tag;
-  private propertyTag: TagWrapper<UpdatableTag>;
+  private propertyTag: Tag;
 
   constructor(private parentValue: object, private propertyKey: string) {
     super();
 
     if (EMBER_METAL_TRACKED_PROPERTIES) {
-      this.propertyTag = UpdatableTag.create(CONSTANT_TAG);
+      this.propertyTag = Tag.create(CONSTANT_TAG);
     } else {
-      this.propertyTag = UpdatableTag.create(tagForProperty(parentValue, propertyKey));
+      this.propertyTag = Tag.create(tagForProperty(parentValue, propertyKey));
     }
 
     if (DEBUG) {
@@ -198,7 +186,7 @@ export class RootPropertyReference extends PropertyReference
     let { parentValue, propertyKey } = this;
 
     if (DEBUG) {
-      (this.tag.inner as ITwoWayFlushDetectionTag).didCompute(parentValue);
+      (this.tag as any).didCompute(parentValue);
     }
 
     let ret;
@@ -209,7 +197,7 @@ export class RootPropertyReference extends PropertyReference
       });
 
       consume(tag);
-      this.propertyTag.inner.update(tag);
+      this.propertyTag.update(tag);
     } else {
       ret = get(parentValue, propertyKey);
     }
@@ -224,7 +212,7 @@ export class RootPropertyReference extends PropertyReference
 
 export class NestedPropertyReference extends PropertyReference {
   public tag: Tag;
-  private propertyTag: TagWrapper<UpdatableTag>;
+  private propertyTag: Tag;
 
   constructor(
     private parentReference: VersionedPathReference<Opaque>,
@@ -233,7 +221,7 @@ export class NestedPropertyReference extends PropertyReference {
     super();
 
     let parentReferenceTag = parentReference.tag;
-    let propertyTag = (this.propertyTag = UpdatableTag.create(CONSTANT_TAG));
+    let propertyTag = (this.propertyTag = Tag.create(CONSTANT_TAG));
 
     if (DEBUG) {
       let tag = combine([parentReferenceTag, propertyTag]);
@@ -261,7 +249,7 @@ export class NestedPropertyReference extends PropertyReference {
       }
 
       if (DEBUG) {
-        (this.tag.inner as ITwoWayFlushDetectionTag).didCompute(parentValue);
+        (this.tag as any).didCompute(parentValue);
       }
 
       let ret;
@@ -273,10 +261,10 @@ export class NestedPropertyReference extends PropertyReference {
 
         consume(tag);
 
-        propertyTag.inner.update(tag);
+        propertyTag.update(tag);
       } else {
         ret = get(parentValue, propertyKey);
-        propertyTag.inner.update(tagForProperty(parentValue, propertyKey));
+        propertyTag.update(tagForProperty(parentValue, propertyKey));
       }
 
       return ret;
@@ -295,13 +283,13 @@ export class NestedPropertyReference extends PropertyReference {
 }
 
 export class UpdatableReference extends EmberPathReference {
-  public tag: TagWrapper<DirtyableTag>;
+  public tag: Tag;
   private _value: Opaque;
 
   constructor(value: Opaque) {
     super();
 
-    this.tag = DirtyableTag.create();
+    this.tag = Tag.create();
     this._value = value;
   }
 
@@ -313,7 +301,7 @@ export class UpdatableReference extends EmberPathReference {
     let { _value } = this;
 
     if (value !== _value) {
-      this.tag.inner.dirty();
+      this.tag.dirty();
       this._value = value;
     }
   }
@@ -321,7 +309,7 @@ export class UpdatableReference extends EmberPathReference {
 
 export class ConditionalReference extends GlimmerConditionalReference
   implements VersionedReference<boolean> {
-  public objectTag: TagWrapper<UpdatableTag>;
+  public objectTag: Tag;
   static create(reference: VersionedReference<Opaque>): VersionedReference<boolean> {
     if (isConst(reference)) {
       let value = reference.value();
@@ -336,16 +324,16 @@ export class ConditionalReference extends GlimmerConditionalReference
 
   constructor(reference: VersionedReference<Opaque>) {
     super(reference);
-    this.objectTag = UpdatableTag.create(CONSTANT_TAG);
+    this.objectTag = Tag.create(CONSTANT_TAG);
     this.tag = combine([reference.tag, this.objectTag]);
   }
 
   toBool(predicate: Opaque): boolean {
     if (isProxy(predicate)) {
-      this.objectTag.inner.update(tagForProperty(predicate, 'isTruthy'));
+      this.objectTag.update(tagForProperty(predicate, 'isTruthy'));
       return Boolean(get(predicate, 'isTruthy'));
     } else {
-      this.objectTag.inner.update(tagFor(predicate));
+      this.objectTag.update(tagFor(predicate));
       return emberToBool(predicate);
     }
   }

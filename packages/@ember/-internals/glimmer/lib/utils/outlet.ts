@@ -1,6 +1,6 @@
 import { Owner } from '@ember/-internals/owner';
 import { Opaque } from '@glimmer/interfaces';
-import { combine, DirtyableTag, Reference, Tag, VersionedPathReference } from '@glimmer/reference';
+import { combine, Reference, Tag, VersionedPathReference } from '@glimmer/reference';
 import { Factory as TemplateFactory, OwnedTemplate } from '../template';
 
 export interface RenderState {
@@ -63,7 +63,7 @@ export interface OutletState {
  * Represents the root outlet.
  */
 export class RootOutletReference implements VersionedPathReference<OutletState> {
-  tag = DirtyableTag.create();
+  tag = Tag.create();
 
   constructor(public outletState: OutletState) {}
 
@@ -77,7 +77,7 @@ export class RootOutletReference implements VersionedPathReference<OutletState> 
 
   update(state: OutletState) {
     this.outletState.outlets.main = state;
-    this.tag.inner.dirty();
+    this.tag.dirty();
   }
 }
 
