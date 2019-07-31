@@ -26,7 +26,7 @@ export function finishLazyChains(obj: any, key: string, value: any) {
   for (let path in lazyTags) {
     let tag = lazyTags[path];
 
-    tag.inner.update(getChainTagsForKey(value, path));
+    tag.inner.update(combine(getChainTagsForKey(value, path)));
 
     delete lazyTags[path];
   }
@@ -36,10 +36,10 @@ export function getChainTagsForKeys(obj: any, keys: string[]) {
   let chainTags: Tag[] = [];
 
   for (let i = 0; i < keys.length; i++) {
-    chainTags.push(getChainTagsForKey(obj, keys[i]));
+    chainTags.push(...getChainTagsForKey(obj, keys[i]));
   }
 
-  return combine(chainTags);
+  return chainTags;
 }
 
 export function getChainTagsForKey(obj: any, path: string) {
@@ -146,5 +146,5 @@ export function getChainTagsForKey(obj: any, path: string) {
     }
   }
 
-  return combine(chainTags);
+  return chainTags;
 }

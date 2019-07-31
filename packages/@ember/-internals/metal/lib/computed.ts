@@ -551,7 +551,7 @@ export class ComputedProperty extends ComputedDescriptor {
         finishLazyChains(obj, keyName, ret);
 
         if (this._dependentKeys !== undefined) {
-          let tag = getChainTagsForKeys(obj, this._dependentKeys);
+          let tag = combine(getChainTagsForKeys(obj, this._dependentKeys));
 
           upstreamTag = upstreamTag === undefined ? tag : combine([upstreamTag, tag]);
         }
@@ -615,7 +615,7 @@ export class ComputedProperty extends ComputedDescriptor {
       let propertyTag = tagForProperty(obj, keyName);
 
       if (this._dependentKeys !== undefined) {
-        update(propertyTag, getChainTagsForKeys(obj, this._dependentKeys));
+        update(propertyTag, combine(getChainTagsForKeys(obj, this._dependentKeys)));
       }
 
       setLastRevisionFor(obj, keyName, propertyTag.value());

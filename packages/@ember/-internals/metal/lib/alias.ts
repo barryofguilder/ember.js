@@ -3,6 +3,7 @@ import { inspect } from '@ember/-internals/utils';
 import { EMBER_METAL_TRACKED_PROPERTIES } from '@ember/canary-features';
 import { assert } from '@ember/debug';
 import EmberError from '@ember/error';
+import { combine } from '@glimmer/reference';
 import { finishLazyChains, getChainTagsForKey } from './chain-tags';
 import {
   getCachedValueFor,
@@ -110,8 +111,7 @@ export class AliasedProperty extends ComputedDescriptor {
       let lastRevision = getLastRevisionFor(obj, keyName);
 
       if (!propertyTag.validate(lastRevision)) {
-        let altPropertyTag = getChainTagsForKey(obj, this.altKey);
-        update(propertyTag, altPropertyTag);
+        update(propertyTag, combine(getChainTagsForKey(obj, this.altKey)));
         setLastRevisionFor(obj, keyName, propertyTag.value());
         finishLazyChains(obj, keyName, ret);
       }
