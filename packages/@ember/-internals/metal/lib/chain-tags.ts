@@ -38,25 +38,38 @@ export function getChainTagsForKeys(obj: any, keys: string[]) {
   return combine(chainTags);
 }
 
-export function getChainTagsForKey(obj: any, key: string) {
+export function getChainTagsForKey(obj: any, path: string) {
   let chainTags: Tag[] = [];
 
   let current: any = obj;
-  let segments = key.split('.');
 
+  let segmentEnd = -1;
   // prevent closures
   let segment: string, descriptor: any;
 
-  while (segments.length > 0) {
-    segment = segments.shift()!;
+  while (true) {
+    let lastSegmentEnd = segmentEnd + 1;
+    segmentEnd = path.indexOf('.', lastSegmentEnd);
 
-    if (segment === '@each' && segments.length > 0) {
+    if (segmentEnd === -1) {
+      segmentEnd = path.length;
+    }
+
+    segment = path.slice(lastSegmentEnd, segmentEnd);
+
+    if (segment === '@each' && segmentEnd !== path.length) {
       assert(
         `When using @each, the value you are attempting to watch must be an array, was: ${current.toString()}`,
         Array.isArray(current) || isEmberArray(current)
       );
 
-      segment = segments.shift()!;
+      segment = path.substr(segmentEnd + 1)!;
+
+      // There shouldn't be any more segments after an `@each`, so break
+      assert(
+        `When using @each, you can only chain one property level deep`,
+        segment.indexOf('.') === -1
+      );
 
       // Push the tags for each item's property
       let tags = (current as Array<any>).map(item => {
@@ -71,9 +84,6 @@ export function getChainTagsForKey(obj: any, key: string) {
       // Push the tag for the array length itself
       chainTags.push(...tags, tagForProperty(current, '[]'));
 
-      // There shouldn't be any more segments after an `@each`, so break
-      assert(`When using @each, you can only chain one property level deep`, segments.length === 0);
-
       break;
     }
 
@@ -81,7 +91,7 @@ export function getChainTagsForKey(obj: any, key: string) {
 
     chainTags.push(propertyTag);
 
-    if (segments.length === 0) {
+    if (segmentEnd === path.length) {
       break;
     }
 
@@ -112,7 +122,7 @@ export function getChainTagsForKey(obj: any, key: string) {
 
         metaFor(current)
           .writableLazyChainsFor(segment)
-          .push([segments.join('.'), placeholderTag]);
+          .push([path.substr(segmentEnd + 1), placeholderTag]);
 
         chainTags.push(placeholderTag);
 
