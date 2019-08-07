@@ -140,12 +140,10 @@ moduleFor(
 
       await this.visit('/');
 
-      assert.throwsAssertion(
-        () => runTask(() => this.visit('/route-with-mount')),
+      return assert.rejectsAssertion(
+        this.visit('/route-with-mount'),
         expectedBacktrackingMessage
       );
-
-      await runLoopSettled();
     }
 
     ['@test it renders with a bound engine name']() {

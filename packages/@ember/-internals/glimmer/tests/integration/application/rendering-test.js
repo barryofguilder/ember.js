@@ -505,12 +505,10 @@ moduleFor(
 
       await this.visit('/');
 
-      assert.throwsAssertion(
-        () => runTask(() => this.visit('/routeWithError')),
+      return assert.rejectsAssertion(
+        this.visit('/routeWithError'),
         expectedBacktrackingMessage
       );
-
-      await runLoopSettled();
     }
 
     ['@test route templates with {{{undefined}}} [GH#14924] [GH#16172]']() {
